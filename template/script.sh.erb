@@ -6,11 +6,17 @@
 
   # Configure R
   r_script = session.staged_root.join("launcher.R")
-  r_env    = "module load intel/16.0.3 R/3.4.2"
-  r_cmd    = "R"
+  # r_env    = "module load intel/16.0.3 R/3.4.2"
+
+  #TODO: could we source a .env file in /users/PZS0562/efranz/awesim/dev/bc_osc_example_shiny/app
+  # not to be confused by https://github.com/gaborcsardi/dotenv
+  r_env = "module load intel/16.0.3 R/3.3.2"
+  r_cmd = "DATASET=/users/PZS0562/efranz/awesim/dev/bc_osc_example_shiny/app/data/hista_alignment R_LIBS_USER=/users/PZS0562/efranz/R/x86_64-unknown-linux-gnu-library/3.3 R"
+  r_dataset = ""
 
   # Configure Shiny
-  app_path = session.staged_root.join("app")
+  # app_path = session.staged_root.join("app")
+  app_path = '/users/PZS0562/efranz/awesim/dev/bc_osc_example_shiny/app'
   app_sock = cache_root.join("app.sock")
 
   # Configure NGINX

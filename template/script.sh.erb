@@ -10,8 +10,8 @@
 
   #TODO: could we source a .env file in /users/PZS0562/efranz/awesim/dev/bc_osc_example_shiny/app
   # not to be confused by https://github.com/gaborcsardi/dotenv
-  r_env = "module load intel/16.0.3 R/3.3.2"
-  r_cmd = "DATASET=/users/PZS0562/efranz/awesim/dev/bc_osc_example_shiny/app/data/hista_alignment R_LIBS_USER=/users/PZS0562/efranz/R/x86_64-unknown-linux-gnu-library/3.3 R"
+  r_env = "export DATASET=/users/PZS0562/efranz/awesim/dev/bc_osc_example_shiny/app/data/hista_alignment"
+  r_cmd = "R"
   r_dataset = ""
 
   # Configure Shiny
@@ -123,6 +123,8 @@ umask 077
 
 # Load the required environment
 <%= r_env %>
+
+source <%= app_path + "/env" %>
 
 # Output debug info
 module list

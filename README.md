@@ -1,10 +1,15 @@
-# [WIP] Batch Connect - OSC Example Shiny App
+# [WIP] Batch Connect - OSC Shiny App Launcher
 
-![GitHub Release](https://img.shields.io/github/release/osc/bc_osc_example_shiny.svg)
+![GitHub Release](https://img.shields.io/github/release/osc/shiny_launcher.svg)
 [![GitHub License](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 A Batch Connect app designed for OSC OnDemand that launches a Shiny App within
 an Owens batch job.
+
+The Shiny app is included a submodule and each deployment can modified which
+Shiny app to deploy using git config to specify the URL for the submodule. This
+way the launcher code can be reused for multiple apps but the launcher and the
+app itself can be managed separately.
 
 ## Prerequisites
 
@@ -21,26 +26,7 @@ OnDemand node):
 
 ## Install
 
-Use git to clone this app and checkout the desired branch/version you want to
-use:
-
-```sh
-scl enable git19 -- git clone <repo>
-cd <dir>
-scl enable git19 -- git checkout <tag/branch>
-```
-
-You will not need to do anything beyond this as all necessary assets are
-installed. You will also not need to restart this app as it isn't a Passenger
-app.
-
-To update the app you would:
-
-```sh
-cd <dir>
-scl enable git19 -- git fetch
-scl enable git19 -- git checkout <tag/branch>
-```
+**TODO**
 
 Again, you do not need to restart the app as it isn't a Passenger app.
 

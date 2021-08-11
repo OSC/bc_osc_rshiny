@@ -1,9 +1,13 @@
 ---
-cluster: "quick"
+cluster:
+  - "pitzer"
 form:
   - bc_account
   - bc_num_hours
+  - app
 attributes:
+  app:
+    required: true
   bc_account:
     label: "Project"
     help: "You can leave this blank if **not** in multiple projects."

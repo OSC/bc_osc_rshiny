@@ -1,50 +1,31 @@
 #!/usr/bin/env bash
 
 <%-
-  # Helper
-  cache_root = Pathname.new("${CACHE_DIR}")
-
-  # Configure R
-  r_script = session.staged_root.join("launcher.R")
-  # r_env    = "module load intel/16.0.3 R/3.4.2"
-
-  #TODO: could we source a .env file in /users/PZS0562/efranz/awesim/dev/bc_osc_example_shiny/app
-  # not to be confused by https://github.com/gaborcsardi/dotenv
-  r_env = "export DATASET=/users/PZS0562/efranz/awesim/dev/bc_osc_example_shiny/app/data/hista_alignment"
-  r_cmd = "R"
-  r_dataset = ""
-
-  # Configure Shiny
-  # app_path = session.staged_root.join("app")
-  app_path = '/users/PZS0562/efranz/awesim/dev/bc_osc_example_shiny/app'
-  app_sock = cache_root.join("app.sock")
 
   # Configure NGINX
   nginx_conf  = session.staged_root.join("nginx.conf")
-  nginx_cache = cache_root.join("nginx")
-  nginx_env   = "module load singularity"
-  nginx_cmd   = <<-EOS.gsub(/^ {4}/, "")
-    singularity run \
-      -B "#{nginx_conf}:/usr/local/openresty/nginx/conf/nginx.conf" \
-      -B "#{nginx_cache}" \
-      -B "#{app_sock.dirname}" \
-      ~jnicklas/ttt/resty.simg
-  EOS
+  app_sock    = "rshiny-#{session.id}.sock"
+  app_log     = session.staged_root.join("app.log")
+  app_wrapper = session.staged_root.join("ood_app_wrapper.R")
+  nginx_cache = session.staged_root.join("nginx_cache").tap { |p| Dir.mkdir(p.to_s) unless p.exist? }
+
 -%>
 
 #
-# Create Shiny App launcher script
-#
+# Create Shiny App launcher script#
+
+export SOCKET="$TMPDIR/<%= app_sock %>"
 
 echo "Creating Shiny App launcher..."
 (
 umask 077
-sed 's/^ \{2\}//' > "<%= r_script %>" << EOT
-sock <- "<%= app_sock %>"
+sed 's/^ \{2\}//' > "<%= app_wrapper %>" << EOT
+sock <- "$SOCKET"
   attr(sock, "mask") <- strtoi("0077", 8)
   options(shiny.port = sock)
   options(shiny.launch.browser = FALSE)
-  shiny::runApp("<%= app_path %>")
+  options(shiny.autoreload = TRUE)
+  shiny::runApp("<%= context.app %>")
 EOT
 )
 
@@ -57,7 +38,8 @@ echo "Creating NGINX config..."
 umask 077
 mkdir -p "<%= nginx_cache %>"
 sed 's/^ \{2\}//' > "<%= nginx_conf %>" << EOT
-  daemon off;
+  # the entry point of the container passes this flag
+  # daemon off; 
   pid <%= nginx_cache %>/nginx.pid;
   worker_processes 1;
 
@@ -100,7 +82,7 @@ sed 's/^ \{2\}//' > "<%= nginx_conf %>" << EOT
             ngx.exit(ngx.HTTP_FORBIDDEN)
           end
         }
-        proxy_pass http://unix:<%= app_sock %>:/;
+        proxy_pass http://unix:$SOCKET:/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection \$connection_upgrade;
@@ -117,22 +99,20 @@ cd "${HOME}"
 #
 # Start Shiny App server
 #
+module purge
 
-(
-umask 077
+module load gnu/9.1.0 mkl/2019.0.5 R/4.0.2
 
-# Load the required environment
-<%= r_env %>
-
-source <%= app_path + "/env" %>
+# hack for my rshiny libs
+module use "$HOME/.local/share/lmodfiles"
+module load pitzer/rshiny
 
 # Output debug info
 module list
 
 # Launch Shiny App
 set -x
-<%= r_cmd %> --no-save --slave -f "<%= r_script %>"
-) &
+R --no-save --slave -f "<%= app_wrapper %>" > <%= app_log %> 2>&1 &
 
 #
 # Wait until Unix socket is created
@@ -142,25 +122,17 @@ TIME=60
 FOUND=0
 echo "Waiting ${TIME} seconds until Unix socket is created..."
 for ((i=1; i<=TIME*2; i++)); do
-  if [[ -e "<%= app_sock %>" ]]; then
+  if [[ -e "$SOCKET" ]]; then
     FOUND=1
     echo "Found socket file!"
     break
   fi
   sleep 0.5
 done
-[[ ${FOUND} -eq 0 ]] && echo "ERROR: Failed to find socket file!" && exit 1
 
-#
-# Start NGINX server
-#
+[[ ${FOUND} -eq 0 ]] && echo "ERROR: Nothing listening on $SOCKET!" && exit 1
 
-# Load required environment
-<%= nginx_env %>
-
-# Output debug info
-module list
-
-# Launch NGINX server
-set -x
-<%= nginx_cmd %>
+singularity run \
+  -B "<%= nginx_conf %>:/usr/local/openresty/nginx/conf/nginx.conf" \
+  -B "$TMPDIR:$TMPDIR" \
+  /users/PZS0714/johrstrom/Public/images/sing/open-resty.sif

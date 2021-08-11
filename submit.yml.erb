@@ -3,5 +3,7 @@ batch_connect:
   template: "basic"
 script:
   native:
-    resources:
-      nodes: "1:ppn=1:owens"
+    - "--nodes"
+    - "1"
+    - "--ntasks-per-node"
+    - "1"
